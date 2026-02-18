@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // --- NEW SECTION: Handles the new Food Logs & History ---
+    // This allows a user to read/write ANY document inside their own "users" folder
+    // It covers "users/{uid}/food_logs" AND "users/{uid}/daily_summaries"
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // --- OLD SECTIONS (Kept for safety/legacy) ---
+
+    // 1. User Profiles
+    match /user_profiles/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 2. Daily Intake (Old system)
+    match /daily_intake/{docId} {
+      allow read, write: if request.auth != null && docId.matches(request.auth.uid + "_.*");
+    }
+
+    // 3. Custom Products (Scanned barcodes)
+    match /custom_products/{barcode} {
+      allow read: if request.auth != null;
+      allow write: if false; 
+    }
+
+    // 4. Food Items Collection - for product search and bulk uploads
+    match /food_items/{barcode} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.userId;
+    }
+  }
+}

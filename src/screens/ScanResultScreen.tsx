@@ -14,6 +14,9 @@ import { FoodItem } from '../types';
 export default function ScanResultScreen({ route, navigation }: any) {
   const { barcode, fromRecipe, recipeName, recipeNutrition, recipeBreakdown } = route.params || {};
   
+  // Check if this is a recipe scan or barcode scan
+  const isRecipe = fromRecipe === true;
+  
   // Steps: 'loading' -> 'input' (ask grams) -> 'result' (show analysis)
   // For recipes, skip input and go straight to result
   const [step, setStep] = useState<'loading' | 'input' | 'result'>(fromRecipe ? 'result' : 'loading');
@@ -82,7 +85,7 @@ export default function ScanResultScreen({ route, navigation }: any) {
 
       // LAYER 1: Check Firebase custom_products first (fastest, most reliable)
       try {
-        const customDoc = await getDoc(doc(db, "custom_products", barcode));
+        const customDoc = await getDoc(doc(db, "food_items", barcode));
         if (customDoc.exists()) {
           const data = customDoc.data();
           if (data) {
