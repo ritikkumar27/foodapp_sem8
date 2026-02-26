@@ -1,11 +1,11 @@
 import admin from 'firebase-admin';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = join(__filename, '..');
+const __dirname = dirname(__filename);
 
 // Initialize Firebase Admin SDK
 const serviceAccount = JSON.parse(readFileSync(join(__dirname, 'service-account-key.json'), 'utf8')); // You'll need to provide this file
@@ -21,6 +21,8 @@ interface AmazonProduct {
   barcode?: string;
   name: string;
   brand?: string;
+  image?: string;
+  image_url?: string;
   nutrition?: {
     energy_kcal?: number;
     fat_g?: number;
@@ -33,12 +35,15 @@ interface AmazonProduct {
   serving_size?: string;
   category?: string;
   ingredients?: string[];
+  allergens?: string[];
+  additives?: string[];
 }
 
 interface FoodItem {
   name: string;
   name_lower: string;
   brand?: string;
+  image?: string | null;
   calories: number;
   protein: number;
   carbs: number;
@@ -46,6 +51,7 @@ interface FoodItem {
   sugar?: number;
   sodium?: number;
   serving_size: string | number;
+  servingSize: string | number;
   nutrition: {
     calories: number;
     protein: number;
@@ -59,6 +65,8 @@ interface FoodItem {
     secondary?: string;
   };
   ingredients?: string[];
+  allergens?: string[];
+  additives?: string[];
   verified: boolean;
   createdAt: string;
 }
@@ -75,6 +83,7 @@ async function uploadFoodItems() {
     console.log(`📚 Loaded ${products.length} products from amazon_products.json`);
     
     let insertedCount = 0;
+    let updatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
     
@@ -92,17 +101,13 @@ async function uploadFoodItems() {
         const docRef = db.collection('food_items').doc(product.barcode);
         const docSnapshot = await docRef.get();
         
-        if (docSnapshot.exists) {
-          console.log(`⏭️  Skipping existing product (${product.barcode}): ${product.name}`);
-          skippedCount++;
-          continue;
-        }
-        
         // Transform product data to match Firestore schema
+        const resolvedImage = product.image || product.image_url || null;
         const foodItem: FoodItem = {
           name: product.name,
           name_lower: product.name.toLowerCase(),
           brand: product.brand,
+          image: resolvedImage,
           calories: product.nutrition?.energy_kcal || 0,
           protein: product.nutrition?.protein_g || 0,
           carbs: product.nutrition?.carbohydrates_g || 0,
@@ -110,6 +115,7 @@ async function uploadFoodItems() {
           sugar: product.nutrition?.sugars_g || 0,
           sodium: product.nutrition?.sodium_mg || 0,
           serving_size: product.serving_size || '1 serving',
+          servingSize: product.serving_size || '1 serving',
           nutrition: {
             calories: product.nutrition?.energy_kcal || 0,
             protein: product.nutrition?.protein_g || 0,
@@ -123,14 +129,21 @@ async function uploadFoodItems() {
             secondary: ''
           } : undefined,
           ingredients: product.ingredients,
+          allergens: product.allergens,
+          additives: product.additives,
           verified: false,
           createdAt: new Date().toISOString()
         };
         
-        // Insert the document with barcode as ID
-        await docRef.set(foodItem);
-        console.log(`✅ Inserted (${product.barcode}): ${product.name}`);
-        insertedCount++;
+        // Upsert (merge) the document with barcode as ID
+        await docRef.set(foodItem, { merge: true });
+        if (docSnapshot.exists) {
+          console.log(`🔄 Updated (${product.barcode}): ${product.name}`);
+          updatedCount++;
+        } else {
+          console.log(`✅ Inserted (${product.barcode}): ${product.name}`);
+          insertedCount++;
+        }
         
       } catch (error) {
         console.error(`❌ Error processing product ${product.name}:`, error);
@@ -141,6 +154,7 @@ async function uploadFoodItems() {
     // Summary
     console.log('\n📊 Upload Summary:');
     console.log(`✅ Successfully inserted: ${insertedCount} items`);
+    console.log(`🔄 Successfully updated: ${updatedCount} items`);
     console.log(`⏭️  Skipped (existing/no barcode): ${skippedCount} items`);
     console.log(`❌ Errors: ${errorCount} items`);
     console.log(`📦 Total processed: ${products.length} items`);

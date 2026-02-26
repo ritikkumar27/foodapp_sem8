@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, ScrollView, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, ScrollView, TextInput, Modal, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebaseConfig';
@@ -33,6 +33,12 @@ export default function ScanResultScreen({ route, navigation }: any) {
   // Edit name state
   const [editNameModalVisible, setEditNameModalVisible] = useState(false);
   const [editedName, setEditedName] = useState('');
+
+  const [detailsVisible, setDetailsVisible] = useState(false);
+  const [detailsTab, setDetailsTab] = useState<'ingredients' | 'nutrients'>('ingredients');
+
+  const [additiveInfoVisible, setAdditiveInfoVisible] = useState(false);
+  const [selectedAdditive, setSelectedAdditive] = useState<string | null>(null);
 
   useEffect(() => {
     if (fromRecipe && recipeNutrition) {
@@ -354,15 +360,134 @@ export default function ScanResultScreen({ route, navigation }: any) {
   const statusColor = result.decision === "SAFE" ? COLORS.success : 
                       result.decision === "WARNING" ? COLORS.warning : COLORS.danger;
 
+  const grade = result.decision === 'SAFE' ? 'A' : result.decision === 'WARNING' ? 'C' : 'E';
+  const gradeColor = grade === 'A' ? COLORS.success : grade === 'C' ? COLORS.warning : COLORS.danger;
+
+  const ingredientsText = Array.isArray(food?.ingredients)
+    ? food.ingredients.filter(Boolean).join(', ')
+    : (food?.ingredients ? String(food.ingredients) : 'Ingredients not listed');
+
+  const allergensList: string[] = Array.isArray(food?.allergens)
+    ? food.allergens
+    : [];
+
+  const additivesList: string[] = Array.isArray(food?.additives)
+    ? food.additives
+    : [];
+
+  const getAllergenIcon = (name: string) => {
+    const n = String(name).toLowerCase();
+    if (n.includes('wheat') || n.includes('gluten')) return '🌾';
+    if (n.includes('soy') || n.includes('soya')) return '🫘';
+    if (n.includes('milk') || n.includes('dairy')) return '🥛';
+    if (n.includes('egg')) return '🥚';
+    if (n.includes('peanut') || n.includes('groundnut')) return '🥜';
+    if (n.includes('tree nut') || n.includes('almond') || n.includes('cashew')) return '🌰';
+    if (n.includes('oat')) return '🌾';
+    return '⚠️';
+  };
+
+  const getAdditiveRisk = (additive: string) => {
+    const a = String(additive).toUpperCase();
+    if (a.includes('INS635')) return 'High';
+    if (a.includes('INS')) return 'Medium';
+    return 'Low';
+  };
+
+  const getAdditiveInfo = (additive: string) => {
+    const raw = String(additive || '').trim();
+    const code = raw.toUpperCase().replace(/\s+/g, '');
+
+    const lookup: Record<string, { title: string; what: string; concerns: string } | undefined> = {
+      'INS635': {
+        title: 'INS 635 (Disodium 5-ribonucleotides)',
+        what: 'A flavour enhancer used to boost umami/savoury taste. Often used with MSG (INS 621).',
+        concerns: 'Generally considered safe at typical food levels. Some people may be sensitive to flavour enhancers and report headaches or flushing. People with gout or high uric acid sometimes prefer to limit nucleotide-based enhancers.',
+      },
+      'INS451(I)': {
+        title: 'INS 451(i) (Triphosphates)',
+        what: 'Used as a stabilizer/emulsifier and to improve texture and water retention in processed foods.',
+        concerns: 'High intake of phosphate additives may be a concern for people with kidney disease. In general, limiting ultra-processed foods helps reduce additive/phosphate intake.',
+      },
+      'INS451': {
+        title: 'INS 451 (Triphosphates)',
+        what: 'Used as a stabilizer/emulsifier and to improve texture and water retention in processed foods.',
+        concerns: 'High intake of phosphate additives may be a concern for people with kidney disease. In general, limiting ultra-processed foods helps reduce additive/phosphate intake.',
+      },
+      'INS508': {
+        title: 'INS 508 (Potassium chloride)',
+        what: 'A mineral salt used as a thickener/stabilizer or as a salt substitute in some foods.',
+        concerns: 'Usually safe in normal amounts. People with kidney disease or on potassium-restricted diets should be cautious with extra potassium sources.',
+      },
+      'INS330': {
+        title: 'INS 330 (Citric acid)',
+        what: 'An acidity regulator commonly used to add tartness and preserve freshness.',
+        concerns: 'Generally safe. In some people it can contribute to mouth irritation or worsen acid sensitivity. Rinsing after acidic foods can help protect teeth.',
+      },
+      'INS621': {
+        title: 'INS 621 (MSG)',
+        what: 'A flavour enhancer that boosts savoury taste.',
+        concerns: 'Considered safe for most people. A small group may be sensitive and report symptoms like headache or flushing after large amounts.',
+      },
+    };
+
+    const info = lookup[code] || lookup[code.replace(/^INS/, 'INS')] || undefined;
+    if (info) return info;
+
+    return {
+      title: raw,
+      what: 'Food additive used to improve taste, texture, stability, or shelf life.',
+      concerns: 'Safety depends on dose and individual sensitivity. If you have allergies, migraines, kidney issues, or specific medical conditions, consider limiting highly processed foods and check with a clinician for personalized guidance.',
+    };
+  };
+
+  const base = baseFood || food;
+  const nutrientsRows = [
+    { label: 'Energy (kcal)', value: base?.calories },
+    { label: 'Protein (g)', value: base?.protein },
+    { label: 'Carbohydrate (g)', value: base?.carbs },
+    { label: 'Total Sugar (g)', value: base?.sugar },
+    { label: 'Added Sugar (g)', value: base?.addedSugar },
+    { label: 'Total Fat (g)', value: base?.fat },
+    { label: 'Saturated Fat (g)', value: base?.saturatedFat },
+    { label: 'Trans Fat (g)', value: base?.transFat },
+    { label: 'Sodium (mg)', value: base?.sodium },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        removeClippedSubviews
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
         
         {/* HEADER CARD WITH MACROS GRID */}
         <View style={styles.card}>
-          <Text style={styles.brand}>{food?.brand || "Generic"}</Text>
-          <View style={styles.foodNameRow}>
-            <Text style={styles.foodName}>{food?.name || "Unknown Food"}</Text>
+          <View style={styles.productTopRow}>
+            {!!food?.image ? (
+              <Image
+                source={{ uri: String(food.image) }}
+                style={styles.productImageSquare}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.productImageSquare} />
+            )}
+
+            <View style={styles.productTopInfo}>
+              <View style={styles.productTopHeader}>
+                <Text style={styles.productName} numberOfLines={2}>{food?.name || "Unknown Food"}</Text>
+                <View style={[styles.gradeBadge, { backgroundColor: gradeColor }]}>
+                  <Text style={styles.gradeText}>{grade}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.brandInline}>{food?.brand || "Generic"}</Text>
+              <Text style={styles.quantityText}>{String(food?.servingSize || food?.serving_size || portionSize)}{String(food?.servingSize || food?.serving_size || '').toLowerCase().includes('g') ? '' : ' g'}</Text>
+            </View>
+
             <TouchableOpacity 
               style={styles.editNameBtn}
               onPress={() => {
@@ -373,41 +498,22 @@ export default function ScanResultScreen({ route, navigation }: any) {
               <Text style={{fontSize: 16, color: COLORS.primary}}>✏️</Text>
             </TouchableOpacity>
           </View>
-          <Text style={{color:COLORS.textSecondary, marginBottom:16}}>
-             Portion: {portionSize}g
-          </Text>
-
-          {/* MACRO GRID */}
-          <View style={styles.macroGrid}>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroValue}>{Math.round(food?.calories || 0)}</Text>
-              <Text style={styles.macroLabel}>Calories</Text>
-            </View>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroValue}>{Math.round(food?.sodium || 0)}mg</Text>
-              <Text style={styles.macroLabel}>Sodium</Text>
-            </View>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroValue}>{Math.round(food?.protein || 0)}g</Text>
-              <Text style={styles.macroLabel}>Protein</Text>
-            </View>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroValue}>{Math.round(food?.carbs || 0)}g</Text>
-              <Text style={styles.macroLabel}>Carbs</Text>
-            </View>
-            <View style={styles.macroItem}>
-              <Text style={styles.macroValue}>{Math.round(food?.fat || 0)}g</Text>
-              <Text style={styles.macroLabel}>Fat</Text>
-            </View>
-          </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.detailsCard}
+          onPress={() => {
+            setDetailsTab('ingredients');
+            setDetailsVisible(true);
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.detailsTitle}>Ingredients & Nutrients</Text>
+          <Text style={styles.detailsSubtitle}>Tap to view ingredients, allergens, additives and nutrients per 100g</Text>
+        </TouchableOpacity>
 
         {/* DECISION BOX */}
         <View style={[styles.resultBox, { borderColor: statusColor }]}>
-          <Text style={[styles.decisionText, { color: statusColor }]}>
-            {result.decision || "UNKNOWN"}
-          </Text>
-          
           <View style={styles.aiBox}>
             <Text style={styles.aiLabel}>✨ Smart Analysis</Text>
             <Text style={styles.aiText}>
@@ -417,8 +523,114 @@ export default function ScanResultScreen({ route, navigation }: any) {
             </Text>
           </View>
         </View>
-        <View style={{ height: 100 }} />
       </ScrollView>
+
+      <Modal visible={detailsVisible} transparent animationType="slide" onRequestClose={() => setDetailsVisible(false)}>
+        <View style={styles.sheetOverlay}>
+          <TouchableOpacity style={styles.sheetOverlayTouchable} activeOpacity={1} onPress={() => setDetailsVisible(false)} />
+          <View style={styles.sheetContainer}>
+            <View style={styles.sheetHandle} />
+
+            <View style={styles.sheetTabs}>
+              <TouchableOpacity
+                style={[styles.sheetTabBtn, detailsTab === 'ingredients' && styles.sheetTabBtnActive]}
+                onPress={() => setDetailsTab('ingredients')}
+              >
+                <Text style={[styles.sheetTabText, detailsTab === 'ingredients' && styles.sheetTabTextActive]}>Ingredients</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sheetTabBtn, detailsTab === 'nutrients' && styles.sheetTabBtnActive]}
+                onPress={() => setDetailsTab('nutrients')}
+              >
+                <Text style={[styles.sheetTabText, detailsTab === 'nutrients' && styles.sheetTabTextActive]}>Nutrients</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.sheetContent}>
+              {detailsTab === 'ingredients' ? (
+                <View>
+                  <Text style={styles.sectionTitle}>Ingredients</Text>
+                  <Text style={styles.paragraphText}>{ingredientsText}</Text>
+
+                  <Text style={styles.sectionTitle}>Allergens</Text>
+                  {allergensList.length === 0 ? (
+                    <Text style={styles.paragraphText}>None listed</Text>
+                  ) : (
+                    <View style={styles.pillsRow}>
+                      {allergensList.map((a, idx) => (
+                        <View key={`${a}-${idx}`} style={styles.pill}>
+                          <Text style={styles.pillText}>{getAllergenIcon(a)} {a}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <Text style={styles.sectionTitle}>Additives</Text>
+                  {additivesList.length === 0 ? (
+                    <Text style={styles.paragraphText}>None listed</Text>
+                  ) : (
+                    <View style={styles.additivesList}>
+                      {additivesList.map((ad, idx) => (
+                        <TouchableOpacity
+                          key={`${ad}-${idx}`}
+                          style={styles.additiveRow}
+                          activeOpacity={0.85}
+                          onPress={() => {
+                            setSelectedAdditive(ad);
+                            setAdditiveInfoVisible(true);
+                          }}
+                        >
+                          <Text style={styles.additiveName}>{ad}</Text>
+                          <View style={[styles.riskBadge, getAdditiveRisk(ad) === 'Low' ? styles.riskLow : getAdditiveRisk(ad) === 'Medium' ? styles.riskMedium : styles.riskHigh]}>
+                            <Text style={styles.riskText}>{getAdditiveRisk(ad)}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ) : (
+                <View>
+                  <View style={styles.tableHeaderRow}>
+                    <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Nutrient</Text>
+                    <Text style={[styles.tableHeaderCell, { width: 110, textAlign: 'right' }]}>Per 100g</Text>
+                  </View>
+
+                  {nutrientsRows.map((row) => {
+                    const v = row.value;
+                    const display = v === undefined || v === null || Number.isNaN(Number(v)) ? '-' : (row.label.includes('(kcal)') || row.label.includes('(mg)') ? String(Math.round(Number(v))) : String(Number(v).toFixed(1)));
+                    return (
+                      <View key={row.label} style={styles.tableRow}>
+                        <Text style={[styles.tableCell, { flex: 1 }]}>{row.label}</Text>
+                        <Text style={[styles.tableCell, { width: 110, textAlign: 'right' }]}>{display}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={additiveInfoVisible} transparent animationType="fade" onRequestClose={() => setAdditiveInfoVisible(false)}>
+        <View style={styles.modalBg}>
+          <View style={styles.additiveModalCard}>
+            <Text style={styles.modalTitle}>{selectedAdditive ? getAdditiveInfo(selectedAdditive).title : 'Additive'}</Text>
+            <Text style={styles.additiveModalLabel}>What is it?</Text>
+            <Text style={styles.additiveModalText}>{selectedAdditive ? getAdditiveInfo(selectedAdditive).what : ''}</Text>
+
+            <Text style={styles.additiveModalLabel}>Possible concerns</Text>
+            <Text style={styles.additiveModalText}>{selectedAdditive ? getAdditiveInfo(selectedAdditive).concerns : ''}</Text>
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity onPress={() => setAdditiveInfoVisible(false)}>
+                <Text style={styles.cancelTxt}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* FOOTER */}
       <View style={styles.footer}>
@@ -426,7 +638,7 @@ export default function ScanResultScreen({ route, navigation }: any) {
           <Text style={styles.btnText}>Eat & Track</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.cancelBtn} onPress={() => navigation.goBack()}>
-          <Text style={{color: COLORS.textSecondary}}>Cancel</Text>
+          <Text style={{ color: COLORS.textSecondary }}>Cancel</Text>
         </TouchableOpacity>
       </View>
 
@@ -434,19 +646,17 @@ export default function ScanResultScreen({ route, navigation }: any) {
       <Modal visible={editNameModalVisible} transparent animationType="fade">
         <View style={styles.modalBg}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edit Recipe Name</Text>
-            
-            <TextInput 
-              style={styles.modalInput} 
-              value={editedName} 
+            <Text style={styles.modalTitle}>Edit Food Name</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editedName}
               onChangeText={setEditedName}
-              placeholder="Enter recipe name"
+              placeholder="Enter food name"
               placeholderTextColor={COLORS.textSecondary}
               autoFocus
             />
-
             <View style={styles.modalBtns}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setEditNameModalVisible(false)}>
+              <TouchableOpacity onPress={() => setEditNameModalVisible(false)}>
                 <Text style={styles.cancelTxt}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={handleSaveName}>
@@ -462,50 +672,93 @@ export default function ScanResultScreen({ route, navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
-  scrollContent: { padding: SPACING.l, paddingBottom: 20 },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
+  scrollContent: { padding: SPACING.l, paddingBottom: 120 },
 
-  // Input Styles
-  inputContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING.xl },
-  title: { fontSize: 32, color: COLORS.textPrimary, fontWeight: 'bold', marginBottom: 8 },
-  subtitle: { fontSize: 20, color: COLORS.primary, marginBottom: 4, textAlign: 'center' },
-  inputBox: { flexDirection: 'row', alignItems: 'baseline', borderBottomWidth: 2, borderBottomColor: COLORS.primary, marginBottom: SPACING.l, marginTop: SPACING.xl },
-  gramInput: { fontSize: 48, color: COLORS.textPrimary, fontWeight: 'bold', minWidth: 80, textAlign: 'center' },
-  unit: { fontSize: 24, color: COLORS.textSecondary, marginLeft: 8 },
-  hint: { color: COLORS.textSecondary, marginBottom: SPACING.xl },
-  mainBtn: { backgroundColor: COLORS.primary, width: '100%', padding: SPACING.l, borderRadius: 16, alignItems: 'center' },
-
-  // Result Styles
-  card: { backgroundColor: COLORS.surface, padding: SPACING.l, borderRadius: 16, marginBottom: SPACING.l },
+  card: { backgroundColor: COLORS.surface, borderRadius: 20, padding: SPACING.l, marginBottom: SPACING.l },
+  productTopRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  productTopInfo: { flex: 1 },
+  productTopHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  productImageSquare: { width: 74, height: 74, borderRadius: 14, backgroundColor: '#1A1A1A' },
+  productName: { color: COLORS.textPrimary, fontSize: 18, fontWeight: FONTS.bold as any, flex: 1 },
+  brandInline: { color: COLORS.textSecondary, fontSize: 13, marginTop: 6 },
+  quantityText: { color: COLORS.textSecondary, fontSize: 13, marginTop: 4 },
+  gradeBadge: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  gradeText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
   brand: { color: COLORS.textSecondary, fontSize: 14, textTransform: 'uppercase' },
-  foodName: { color: COLORS.textPrimary, fontSize: 28, fontWeight: FONTS.bold as any, marginBottom: SPACING.m },
-  
-  // New Grid Styles
+  foodName: { color: COLORS.textPrimary, fontSize: 28, fontWeight: FONTS.bold as any, marginBottom: SPACING.m, flex: 1 },
+
+  // Input screen
+  inputContainer: { flex: 1, justifyContent: 'center', padding: SPACING.l },
+  title: { color: COLORS.textPrimary, fontSize: 28, fontWeight: 'bold', marginBottom: SPACING.s },
+  subtitle: { color: COLORS.textPrimary, fontSize: 18, marginBottom: SPACING.s },
+  inputBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: SPACING.l, marginBottom: SPACING.m },
+  gramInput: { backgroundColor: COLORS.surface, color: COLORS.textPrimary, padding: SPACING.m, borderRadius: 12, minWidth: 120, textAlign: 'center', fontSize: 20 },
+  unit: { color: COLORS.textSecondary, marginLeft: SPACING.m, fontSize: 16 },
+  hint: { color: COLORS.textSecondary, textAlign: 'center', marginTop: SPACING.s },
+  mainBtn: { backgroundColor: COLORS.primary, padding: SPACING.l, borderRadius: 16, alignItems: 'center', marginTop: SPACING.l },
+  error: { color: COLORS.danger },
+
+  // Result screen
+  foodNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  editNameBtn: { padding: 8, marginLeft: 8 },
+
+  detailsCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: SPACING.l, marginBottom: SPACING.l, borderWidth: 1, borderColor: '#333' },
+  detailsTitle: { color: COLORS.textPrimary, fontSize: 16, fontWeight: 'bold' },
+  detailsSubtitle: { color: COLORS.textSecondary, fontSize: 12, marginTop: 6, lineHeight: 18 },
+
   macroGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
-  macroItem: { 
-    backgroundColor: '#1A1A1A', 
-    width: '30%', // Fits 3 items per row roughly
-    padding: 10, 
-    borderRadius: 8, 
+  macroItem: {
+    backgroundColor: '#1A1A1A',
+    width: '30%',
+    padding: 10,
+    borderRadius: 8,
     alignItems: 'center',
-    flexGrow: 1 
+    flexGrow: 1,
   },
   macroValue: { color: COLORS.primary, fontSize: 18, fontWeight: 'bold' },
   macroLabel: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
 
   resultBox: { borderWidth: 2, borderRadius: 16, padding: SPACING.l, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
-  decisionText: { fontSize: 32, fontWeight: 'bold', marginBottom: SPACING.m },
   aiBox: { marginTop: SPACING.s, backgroundColor: '#2A2A2A', padding: SPACING.m, borderRadius: 12, width: '100%' },
   aiLabel: { color: COLORS.secondary, fontWeight: 'bold', marginBottom: SPACING.s, fontSize: 14 },
   aiText: { color: '#E0E0E0', fontSize: 14, lineHeight: 22 },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.surface, padding: SPACING.l, borderTopWidth: 1, borderTopColor: '#333' },
-  button: { padding: SPACING.l, borderRadius: 16, alignItems: 'center' },
-  btnText: { color: '#000', fontWeight: 'bold', fontSize: 18 },
-  cancelBtn: { alignItems: 'center', padding: SPACING.m },
-  
-  // Edit Name Modal Styles
-  foodNameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  editNameBtn: { padding: 8, marginLeft: 8 },
+
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  sheetOverlayTouchable: { flex: 1 },
+  sheetContainer: { backgroundColor: COLORS.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: SPACING.l, paddingTop: 10, paddingBottom: SPACING.l, maxHeight: '80%' },
+  sheetHandle: { width: 44, height: 5, borderRadius: 3, backgroundColor: '#444', alignSelf: 'center', marginBottom: 10 },
+  sheetTabs: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  sheetTabBtn: { flex: 1, borderRadius: 14, paddingVertical: 10, alignItems: 'center', borderWidth: 1, borderColor: '#333' },
+  sheetTabBtnActive: { backgroundColor: '#1A1A1A', borderColor: COLORS.primary },
+  sheetTabText: { color: COLORS.textSecondary, fontWeight: 'bold' },
+  sheetTabTextActive: { color: COLORS.textPrimary },
+  sheetContent: { paddingBottom: 24 },
+  sectionTitle: { color: COLORS.textPrimary, fontSize: 14, fontWeight: 'bold', marginTop: 8, marginBottom: 8 },
+  paragraphText: { color: '#E0E0E0', fontSize: 13, lineHeight: 20 },
+  pillsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pill: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 999, paddingVertical: 6, paddingHorizontal: 10 },
+  pillText: { color: COLORS.textPrimary, fontSize: 12 },
+  additivesList: { gap: 10 },
+  additiveRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
+  additiveName: { color: COLORS.textPrimary, fontSize: 13, fontWeight: 'bold' },
+  riskBadge: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 999 },
+  riskText: { color: '#000', fontSize: 12, fontWeight: 'bold' },
+  riskLow: { backgroundColor: COLORS.success },
+  riskMedium: { backgroundColor: COLORS.warning },
+  riskHigh: { backgroundColor: COLORS.danger },
+  tableHeaderRow: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#333' },
+  tableHeaderCell: { color: COLORS.textSecondary, fontSize: 12, fontWeight: 'bold' },
+  tableRow: { flexDirection: 'row', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#222' },
+  tableCell: { color: COLORS.textPrimary, fontSize: 13 },
+
+  // Footer (smaller)
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: COLORS.surface, padding: SPACING.m, borderTopWidth: 1, borderTopColor: '#333' },
+  button: { paddingVertical: SPACING.m, paddingHorizontal: SPACING.l, borderRadius: 16, alignItems: 'center' },
+  btnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+  cancelBtn: { alignItems: 'center', paddingVertical: SPACING.s, paddingHorizontal: SPACING.m, marginTop: SPACING.s },
+
+  // Edit Name Modal
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center' },
   modalCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: SPACING.l, width: '80%', borderWidth: 1, borderColor: '#333' },
   modalTitle: { color: COLORS.textPrimary, fontSize: 18, fontWeight: 'bold', marginBottom: SPACING.m },
@@ -514,4 +767,8 @@ const styles = StyleSheet.create({
   saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: SPACING.l, paddingVertical: SPACING.s, borderRadius: 8 },
   saveTxt: { color: '#000', fontWeight: 'bold' },
   cancelTxt: { color: COLORS.textSecondary },
+
+  additiveModalCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: SPACING.l, width: '88%', borderWidth: 1, borderColor: '#333' },
+  additiveModalLabel: { color: COLORS.textSecondary, fontSize: 12, fontWeight: 'bold', marginTop: 6, marginBottom: 6 },
+  additiveModalText: { color: '#E0E0E0', fontSize: 13, lineHeight: 20 },
 });

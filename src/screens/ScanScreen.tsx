@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, Button, TouchableOpacity, Alert, 
-  TextInput, FlatList, Modal, ScrollView, ActivityIndicator 
+  TextInput, FlatList, Modal, ScrollView, ActivityIndicator, Image 
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { COLORS, SPACING } from '../constants/theme';
@@ -27,6 +27,7 @@ interface Product {
   id: string;
   name: string;
   brand?: string;
+  image?: string | null;
   calories: number;
   protein: number;
   carbs: number;
@@ -110,8 +111,7 @@ export default function ScanScreen({ navigation }: any) {
 
   const handleProductSelect = (product: Product) => {
     navigation.navigate('ScanResult', { 
-      barcode: null,
-      product: product
+      barcode: product.id
     });
   };
 
@@ -243,16 +243,14 @@ export default function ScanScreen({ navigation }: any) {
       style={styles.searchResultItem}
       onPress={() => handleProductSelect(item)}
     >
+      {!!item.image ? (
+        <Image source={{ uri: String(item.image) }} style={styles.productThumb} resizeMode="cover" />
+      ) : (
+        <View style={styles.productThumb} />
+      )}
       <View style={styles.productInfo}>
         <Text style={styles.productName}>{item.name}</Text>
         {item.brand && <Text style={styles.productBrand}>{item.brand}</Text>}
-        <Text style={styles.productServing}>Serving: {item.serving_size}</Text>
-      </View>
-      <View style={styles.nutritionPreview}>
-        <Text style={styles.nutritionText}>{item.calories} cal</Text>
-        <Text style={styles.nutritionText}>P: {item.protein}g</Text>
-        <Text style={styles.nutritionText}>C: {item.carbs}g</Text>
-        <Text style={styles.nutritionText}>F: {item.fat}g</Text>
       </View>
     </TouchableOpacity>
   );
@@ -634,12 +632,17 @@ const styles = StyleSheet.create({
   },
   searchResultItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    padding: SPACING.m,
-    marginBottom: SPACING.s,
-    backgroundColor: COLORS.surface,
+    gap: 12,
+    paddingVertical: SPACING.m,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.08)'
+  },
+  productThumb: {
+    width: 48,
+    height: 48,
     borderRadius: 12,
+    backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)'
   },
@@ -653,20 +656,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary, 
     fontSize: 14,
     marginTop: 2
-  },
-  productServing: { 
-    color: COLORS.textSecondary, 
-    fontSize: 12,
-    marginTop: 2
-  },
-  nutritionPreview: {
-    alignItems: 'flex-end',
-    gap: 2
-  },
-  nutritionText: {
-    color: COLORS.primary,
-    fontSize: 12,
-    fontWeight: '500'
   },
   
   // Empty State

@@ -3,16 +3,17 @@
     "barcode": "8901058005653",
     "name": "MAGGI Spicy Cheesy Instant Noodles with Seasoning | Yummy Cheese Meets MAGGI Noodles | 76g",
     "brand": "MAGGI",
+    "image": "https://m.media-amazon.com/images/I/81NaxSV9KvL._SX522_.jpg",
     "category": "Noodles",
     "serving_size": "1 serving",
     "nutrition": {
-      "energy_kcal": null,
-      "fat_g": null,
-      "carbohydrates_g": null,
-      "sugars_g": null,
-      "protein_g": null,
-      "fiber_g": null,
-      "sodium_mg": null
+      "energy_kcal":242,
+      "fat_g": 7.7,
+      "carbohydrates_g": 37,
+      "sugars_g": 7.7,
+      "protein_g": 6.2,
+      "fiber_g": 0,
+      "sodium_mg": 668
     },
     "ingredients": [
       "\"Refined wheat flour (Maida)",
@@ -60,16 +61,17 @@
     "barcode": "8901058010534",
     "name": "MAGGI Spicy Pepper Noodles | Yummy PEPPER Meets MAGGI Noodles | Instant & Easy-to-Cook Snack | 62g",
     "brand": "MAGGI",
+    "image": "https://m.media-amazon.com/images/I/816xHc9NBjL._SX522_.jpg",
     "category": "Noodles",
     "serving_size": "100 g",
     "nutrition": {
-      "energy_kcal": null,
-      "fat_g": null,
+      "energy_kcal": 330,
+      "fat_g": 7.6,
       "carbohydrates_g": 49.3,
-      "sugars_g": null,
+      "sugars_g": 2.3,
       "protein_g": 7.6,
       "fiber_g": null,
-      "sodium_mg": null
+      "sodium_mg": 944.6
     },
     "ingredients": [
       "Refined wheat flour (Maida)",
@@ -120,19 +122,20 @@
     "source_url": "https://www.amazon.in/dp/B0D9KS8CS1"
   },
   {
-    "barcode": null,
+    "barcode": "8901058003734",
     "name": "MAGGI Korean BBQ Veg Noodles, Easy To Cook Instant Noodles, 90g",
     "brand": "MAGGI",
+    "image": "https://m.media-amazon.com/images/I/811IX4PekcL._SX522_.jpg",
     "category": "Pasta & Noodle Dishes",
     "serving_size": "1 serving",
     "nutrition": {
-      "energy_kcal": null,
-      "fat_g": null,
-      "carbohydrates_g": null,
-      "sugars_g": null,
-      "protein_g": null,
+      "energy_kcal": 321,
+      "fat_g": 13.5,
+      "carbohydrates_g": 41.6,
+      "sugars_g": 3.2,
+      "protein_g": 8.2,
       "fiber_g": null,
-      "sodium_mg": null
+      "sodium_mg": 915.7
     },
     "ingredients": [
       "Refined wheat flour (Maida)",
@@ -184,19 +187,20 @@
     "source_url": "https://www.amazon.in/dp/B0CJVJNJDQ"
   },
   {
-    "barcode": null,
+    "barcode": "8901058003727",
     "name": "MAGGI Korean BBQ Chicken Noodles, Easy To Cook Instant Noodles, 90g",
     "brand": "MAGGI",
+    "image": "https://m.media-amazon.com/images/I/81jLiEAqLiL._SX522_.jpg",
     "category": "Pasta & Noodle Dishes",
     "serving_size": "1 serving",
     "nutrition": {
-      "energy_kcal": null,
-      "fat_g": null,
-      "carbohydrates_g": null,
-      "sugars_g": null,
-      "protein_g": null,
-      "fiber_g": null,
-      "sodium_mg": null
+      "energy_kcal": 336,
+      "fat_g": 13.4,
+      "carbohydrates_g": 44.8,
+      "sugars_g": 2.4,
+      "protein_g": 9,
+      "fiber_g": 0,
+      "sodium_mg": 858.7
     },
     "ingredients": [
       "Refined wheat flour (Maida)",
@@ -236,7 +240,7 @@
       "INS508",
       "INS635"
     ],
-    "dietary": "Vegetarian",
+    "dietary": "Non-Vegetarian",
     "allergens": [
       "Oats",
       "Eggs",
