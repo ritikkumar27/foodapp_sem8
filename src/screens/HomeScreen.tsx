@@ -2,6 +2,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Svg, Circle } from 'react-native-svg';
+import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useFocusEffect } from '@react-navigation/native';
 import { auth, db } from '../services/firebaseConfig';
@@ -110,18 +112,50 @@ export default function HomeScreen({ navigation }: any) {
     }, [])
   );
 
-  // Helper Component for Progress Bars
-  const MacroBar = ({ label, value, max, color }: any) => {
+  // Helper Component for Circular Progress Rings
+  const MacroRing = ({ label, value, max, color }: any) => {
     const progress = Math.min(value / max, 1);
+    const size = 70; // Reduced size to make rings smaller
+    const strokeWidth = 8; // Reduced strokeWidth proportionally
+    const radius = (size - strokeWidth) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDasharray = circumference;
+    const strokeDashoffset = circumference - (progress * circumference);
+    const percentage = Math.round(progress * 100);
+    
     return (
-      <View style={styles.macroContainer}>
-        <View style={styles.macroHeader}>
-          <Text style={styles.macroLabel}>{label}</Text>
-          <Text style={styles.macroValue}>{Math.round(value)} / {max}g</Text>
+      <View style={styles.macroRingContainer}>
+        <View style={styles.ringWrapper}>
+          <Svg width={size} height={size}>
+            {/* Background Circle */}
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke="#333" // Darker background stroke
+              strokeWidth={strokeWidth}
+              fill="transparent"
+            />
+            {/* Progress Circle */}
+            <Circle
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              stroke={color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={strokeDasharray}
+              strokeDashoffset={strokeDashoffset}
+              strokeLinecap="round"
+              fill="transparent"
+              rotation="-90"
+              origin={`${size / 2}, ${size / 2}`}
+            />
+          </Svg>
+          <View style={styles.ringTextContainer}>
+            <Text style={styles.ringValue}>{percentage}%</Text>
+          </View>
         </View>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${progress * 100}%`, backgroundColor: color }]} />
-        </View>
+        <Text style={styles.ringLabel}>{label}</Text>
       </View>
     );
   };
@@ -149,26 +183,36 @@ export default function HomeScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        {/* Main Calorie Card */}
-        <View style={styles.calorieCard}>
-          <Text style={styles.calLabel}>Calories Consumed</Text>
-          <Text style={styles.calValue}>{Math.round(intake.calories)}</Text>
-          <Text style={styles.calGoal}>of {goals.calories} kcal goal</Text>
-          
-          <View style={styles.mainProgressBg}>
-             <View style={[styles.mainProgressFill, { width: `${Math.min(intake.calories / goals.calories, 1) * 100}%` }]} />
+        {/* Main Calorie Card with Bar */}
+        <LinearGradient
+          colors={[`${COLORS.primary}60`, `${COLORS.primary}40`, `${COLORS.primary}20`]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.calorieCard, { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84, elevation: 5 }]}
+        >
+          <View style={styles.calorieContent}>
+            <Text style={styles.calorieLabel}>CALORIES</Text>
+            <View style={styles.calorieNumbers}>
+              <Text style={styles.calorieCurrent}>{Math.round(intake.calories)}</Text>
+              <Text style={styles.calorieGoal}>/ {goals.calories}</Text>
+            </View>
+            <View style={styles.calorieBarContainer}>
+              <View style={styles.calorieBarBg}>
+                <View style={[styles.calorieBarFill, { width: `${Math.min((intake.calories / goals.calories) * 100, 100)}%` }]} />
+              </View>
+            </View>
+            
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Macros Section */}
         <Text style={styles.sectionTitle}>Daily Macros</Text>
         
         <View style={styles.statsGrid}>
-          <MacroBar label="Protein" value={intake.protein || 0} max={goals.protein} color="#4ECDC4" />
-          <MacroBar label="Carbs" value={intake.carbs || 0} max={goals.carbs} color="#FFD166" />
-          <MacroBar label="Fats" value={intake.fat || 0} max={goals.fat} color="#EF476F" />
-          <MacroBar label="Sugar Max" value={intake.sugar || 0} max={goals.sugar} color="#FF6B9D" />
-          <MacroBar label="Sodium Max" value={intake.sodium || 0} max={goals.sodium} color="#A8DADC" />
+          <MacroRing label="PRO" value={intake.protein || 0} max={goals.protein} color="#4A90E2" />
+          <MacroRing label="CARB" value={intake.carbs || 0} max={goals.carbs} color="#FFD166" />
+          <MacroRing label="FAT" value={intake.fat || 0} max={goals.fat} color="#FF6B9D" />
+          <MacroRing label="SODIUM" value={intake.sodium || 0} max={goals.sodium} color="#4CAF50" />
         </View>
 
         {/* Food List Component */}
@@ -185,7 +229,7 @@ export default function HomeScreen({ navigation }: any) {
         {/* Daily Tip */}
         <View style={styles.tipBox}>
            <Text style={styles.tipTitle}>💡 Daily Tip</Text>
-           <Text style={styles.tipText}>Prioritize protein in the morning to keep energy stable throughout the day.</Text>
+           <Text style={styles.tipText}>Prioritize protein in morning to keep energy stable throughout the day.</Text>
         </View>
         
         {/* Bottom Spacer for scrolling */}
@@ -198,7 +242,7 @@ export default function HomeScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  scroll: { padding: SPACING.l },
+  scroll: { padding: SPACING.m },
   
   header: { 
     flexDirection: 'row', 
@@ -207,7 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.l 
   },
   greeting: { color: COLORS.textSecondary, fontSize: 16 },
-  username: { color: COLORS.textPrimary, fontSize: 32, fontWeight: 'bold' },
+  username: { color: COLORS.textPrimary, fontSize: 24, fontWeight: 'bold' },
   
   avatarBtn: {
     width: 50,
@@ -224,23 +268,103 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold'
   },
-
-  calorieCard: { backgroundColor: COLORS.surface, borderRadius: 20, padding: SPACING.l, alignItems: 'center', marginBottom: SPACING.xl, borderWidth: 1, borderColor: '#333' },
-  calLabel: { color: COLORS.textSecondary, fontSize: 14, textTransform: 'uppercase' },
-  calValue: { color: COLORS.primary, fontSize: 48, fontWeight: 'bold', marginVertical: 4 },
-  calGoal: { color: COLORS.textSecondary, marginBottom: SPACING.m },
-  mainProgressBg: { width: '100%', height: 10, backgroundColor: '#222', borderRadius: 5 },
-  mainProgressFill: { height: '100%', backgroundColor: COLORS.primary, borderRadius: 5 },
+  calorieCard: { 
+    backgroundColor: COLORS.surface, 
+    borderRadius: 20, 
+    padding: SPACING.xl, 
+    alignItems: 'center', 
+    marginBottom: SPACING.xl, 
+    borderWidth: 1, 
+    borderColor: '#333' 
+  },
+  calorieContent: {
+    alignItems: 'center',
+    width: '100%',
+    padding:25
+  },
+  calorieLabel: { 
+    color: COLORS.textPrimary, 
+    fontSize: 14, 
+    textTransform: 'uppercase', 
+    marginBottom: SPACING.m,
+    fontWeight: 'bold'
+  },
+  calorieBarContainer: {
+    width: '100%',
+    marginBottom: SPACING.s,
+  },
+  calorieBarBg: {
+    height: 8,
+    backgroundColor: "#333",
+    borderRadius: 5,
+  },
+  calorieBarFill: {
+    height: '100%',
+    backgroundColor: COLORS.primary,
+    borderRadius: 5,
+  },
+  calorieNumbers: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    alignItems:"baseline",
+    paddingBottom: 10,
+  },
+  calorieCurrent: { 
+    color: COLORS.primary, 
+    fontSize: 80, 
+    fontWeight: 'bold' 
+  },
+  calorieGoal: { 
+    color: COLORS.textPrimary, 
+    fontSize: 16 ,
+  },
   
   sectionTitle: { color: COLORS.textPrimary, fontSize: 20, fontWeight: 'bold', marginBottom: SPACING.m },
-  statsGrid: { gap: SPACING.m, marginBottom: SPACING.xl },
+  statsGrid: { 
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.xl 
+  },
   
-  macroContainer: { marginBottom: SPACING.s },
-  macroHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  macroLabel: { color: COLORS.textSecondary, fontWeight: 'bold' },
-  macroValue: { color: COLORS.textPrimary },
-  progressBarBg: { height: 8, backgroundColor: '#222', borderRadius: 4 },
-  progressBarFill: { height: '100%', borderRadius: 4 },
+  // Ring styles for macros
+  macroRingContainer: {
+    width: 70, // Match the smaller ring size
+    alignItems: 'center',
+  },
+  ringWrapper: {
+    position: 'relative',
+    marginBottom: SPACING.s,
+  },
+  ringTextContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ringValue: {
+    color: COLORS.textPrimary,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  ringUnit: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+  },
+  ringLabel: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  ringMax: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    textAlign: 'center',
+  },
   
   tipBox: { backgroundColor: '#1A1A1A', padding: SPACING.m, borderRadius: 12 },
   tipTitle: { color: COLORS.primary, fontWeight: 'bold', marginBottom: 4 },

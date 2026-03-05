@@ -19,6 +19,7 @@
     "@types/node": "^25.2.3",
     "expo": "~54.0.33",
     "expo-camera": "~17.0.10",
+    "expo-linear-gradient": "^55.0.8",
     "expo-status-bar": "~3.0.9",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.1",

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Svg, Circle } from 'react-native-svg';
 import { doc, setDoc, getDoc } from 'firebase/firestore'; // [UPDATED] Added getDoc
 import { auth, db } from '../services/firebaseConfig';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
@@ -676,9 +677,36 @@ export default function OnboardingScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { width: `${(step / TOTAL_STEPS) * 100}%` }]} />
+      {/* Progress Ring */}
+      <View style={styles.progressRingContainer}>
+        <Svg width={40} height={40}>
+          {/* Background Circle */}
+          <Circle
+            cx={20}
+            cy={20}
+            r={16}
+            stroke="#333"
+            strokeWidth={4}
+            fill="transparent"
+          />
+          {/* Progress Circle */}
+          <Circle
+            cx={20}
+            cy={20}
+            r={16}
+            stroke={COLORS.primary}
+            strokeWidth={4}
+            strokeDasharray={100.48}
+            strokeDashoffset={100.48 - ((step / TOTAL_STEPS) * 100.48)}
+            strokeLinecap="round"
+            fill="transparent"
+            rotation="-90"
+            origin="20, 20"
+          />
+        </Svg>
+        <View style={styles.progressTextContainer}>
+          <Text style={styles.progressText}>{step}/{TOTAL_STEPS}</Text>
+        </View>
       </View>
 
       <View style={styles.topNav}>
@@ -704,8 +732,22 @@ export default function OnboardingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
 
-  progressContainer: { height: 4, backgroundColor: '#333', width: '100%' },
-  progressBar: { height: '100%', backgroundColor: COLORS.primary },
+  progressRingContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.m,
+  },
+  progressTextContainer: {
+    position: 'absolute',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressText: {
+    color: COLORS.textPrimary,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
 
   topNav: { paddingHorizontal: SPACING.xl, paddingTop: SPACING.l, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   navBtn: { paddingVertical: SPACING.s, paddingHorizontal: SPACING.m },
