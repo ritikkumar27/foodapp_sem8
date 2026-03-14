@@ -5,7 +5,7 @@ import {
   KeyboardAvoidingView, Platform, Alert 
 } from 'react-native';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore'; // [NEW] Import Firestore
 import { auth, db } from '../services/firebaseConfig';
 
@@ -22,20 +22,15 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      // 1. Sign In
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 2. Check if Profile Exists
-      // This helps verify if we should expect to go Home or Onboarding
+
       const profileRef = doc(db, "user_profiles", user.uid);
       const profileSnap = await getDoc(profileRef);
 
       if (profileSnap.exists()) {
         console.log("Profile found, ready for Home.");
-        // The AppNavigator should handle the switch to 'Home' automatically.
-        // If your navigator allows manual navigation, you could uncomment:
-        // navigation.navigate('Home'); 
       } else {
         console.log("No profile found, user needs Onboarding.");
       }
@@ -45,6 +40,37 @@ export default function LoginScreen({ navigation }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    const resetEmail = email.trim();
+
+    if (!resetEmail) {
+      Alert.alert(
+        "Reset Password",
+        "Please enter your email address in the field above, then tap Forgot Password again."
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Reset Password",
+      `Send a password reset link to\n${resetEmail}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Send Link",
+          onPress: async () => {
+            try {
+              await sendPasswordResetEmail(auth, resetEmail);
+              Alert.alert("Email Sent ✓", "Check your inbox for a password reset link.");
+            } catch (error: any) {
+              Alert.alert("Error", error.message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -82,6 +108,10 @@ export default function LoginScreen({ navigation }: any) {
 
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
             <Text style={styles.buttonText}>{loading ? "Checking..." : "Enter"}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={handleForgotPassword}>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
@@ -153,6 +183,13 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  forgotText: {
+    color: COLORS.primary,
+    textAlign: 'center',
+    marginTop: SPACING.s,
+    fontSize: 14,
+    fontWeight: '500',
   },
   footerText: {
     color: COLORS.textSecondary,
