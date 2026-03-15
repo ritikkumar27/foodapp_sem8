@@ -16,17 +16,17 @@ Smart Food Intelligence — a React Native mobile app that helps you scan food p
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | React Native 0.81 + Expo 54 |
-| Language | TypeScript |
+| Layer      | Technology                                      |
+| ---------- | ----------------------------------------------- |
+| Framework  | React Native 0.81 + Expo 54                     |
+| Language   | TypeScript                                      |
 | Navigation | React Navigation 7 (native-stack + bottom-tabs) |
-| Auth | Firebase Auth (email/password) |
-| Database | Cloud Firestore |
-| AI | Google Gemini 2.5 Flash |
-| Camera | expo-camera |
-| Animations | react-native-reanimated |
-| Build | EAS Build |
+| Auth       | Firebase Auth (email/password)                  |
+| Database   | Cloud Firestore                                 |
+| AI         | Google Gemini 2.5 Flash                         |
+| Camera     | expo-camera                                     |
+| Animations | react-native-reanimated                         |
+| Build      | EAS Build                                       |
 
 ## Prerequisites
 
@@ -40,12 +40,14 @@ Smart Food Intelligence — a React Native mobile app that helps you scan food p
 ## Setup
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/ritikkumar27/foodapp_sem8.git
    cd foodapp_sem8
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
@@ -53,6 +55,7 @@ Smart Food Intelligence — a React Native mobile app that helps you scan food p
 3. **Configure environment variables**
 
    Create a `.env` file in the root directory:
+
    ```env
    EXPO_PUBLIC_FIREBASE_API_KEY=your_api_key
    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
@@ -147,23 +150,19 @@ Camera Scan → Fetch Nutrition → Rule Engine (SAFE/WARNING/AVOID)
 
 ## Firestore Data Model
 
-| Collection | Document Key | Description |
-|---|---|---|
-| `user_profiles/{uid}` | User ID | Health profile (age, weight, diseases, allergies, goals) |
-| `users/{uid}/food_logs` | Auto-generated | Individual food items logged |
-| `users/{uid}/daily_summaries/{date}` | Date string | Aggregated daily totals |
-| `users/{uid}/recipes` | Auto-generated | Saved recipe configurations |
-| `food_items/{barcode}` | Barcode | Product database (public read) |
+| Collection                           | Document Key   | Description                                              |
+| ------------------------------------ | -------------- | -------------------------------------------------------- |
+| `user_profiles/{uid}`                | User ID        | Health profile (age, weight, diseases, allergies, goals) |
+| `users/{uid}/food_logs`              | Auto-generated | Individual food items logged                             |
+| `users/{uid}/daily_summaries/{date}` | Date string    | Aggregated daily totals                                  |
+| `users/{uid}/recipes`                | Auto-generated | Saved recipe configurations                              |
+| `food_items/{barcode}`               | Barcode        | Product database (public read)                           |
 
 ## Scripts
 
-| Command | Description |
-|---|---|
-| `npm start` | Start Expo dev server |
-| `npm run android` | Start with Android |
-| `npm run ios` | Start with iOS |
-| `npm run web` | Start web version |
-
-## License
-
-This project is for educational purposes (Semester 8 project).
+| Command           | Description           |
+| ----------------- | --------------------- |
+| `npm start`       | Start Expo dev server |
+| `npm run android` | Start with Android    |
+| `npm run ios`     | Start with iOS        |
+| `npm run web`     | Start web version     |
