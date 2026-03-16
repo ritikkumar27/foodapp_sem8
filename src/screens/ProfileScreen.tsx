@@ -67,16 +67,24 @@ export default function ProfileScreen({ navigation }: any) {
   const packagedFoodOptions: Array<'Rare' | '1–2× weekly' | '3–5× weekly' | 'Daily'> = ['Rare', '1–2× weekly', '3–5× weekly', 'Daily'];
   const healthGoalOptions = ['Fat loss', 'Muscle building', 'Stay fit', 'Gain weight', 'Better digestion', 'Better sleep', 'Manage diabetes', 'Lower BP'];
 
-  // 1. MOVE LOGOUT TO THE NATIVE HEADER
+  // 1. ADD PENCIL ICON TO HEADER FOR EDITING
   useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity onPress={handleLogout} style={{ marginRight: 8 }}>
-          <Text style={{ color: COLORS.danger, fontWeight: 'bold' }}>Log Out</Text>
+        <TouchableOpacity 
+          onPress={isEditing ? handleSave : () => setIsEditing(true)} 
+          disabled={saving}
+          style={{ marginRight: 8 }}
+        >
+          <Ionicons 
+            name={isEditing ? "checkmark" : "pencil"} 
+            size={20} 
+            color={isEditing ? COLORS.primary : (saving ? COLORS.textSecondary : COLORS.primary)} 
+          />
         </TouchableOpacity>
       ),
     });
-  }, [navigation]);
+  }, [navigation, isEditing, saving]);
 
   useEffect(() => {
     fetchProfile();
@@ -193,6 +201,7 @@ export default function ProfileScreen({ navigation }: any) {
       );
 
       await updateDoc(doc(db, "user_profiles", user.uid), {
+        name,
         age: ageYears,
         dob,
         gender,
@@ -331,7 +340,17 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.avatar}>
              <Text style={styles.avatarText}>{name ? name.charAt(0).toUpperCase() : "U"}</Text>
           </View>
-          <Text style={styles.name}>{name}</Text>
+          {isEditing ? (
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              style={[styles.nameInput, styles.inputEditable]}
+              placeholder="Enter your name"
+              placeholderTextColor={COLORS.textSecondary}
+            />
+          ) : (
+            <Text style={styles.name}>{name}</Text>
+          )}
           <Text style={styles.email}>{auth.currentUser?.email}</Text>
         </View>
 
@@ -654,15 +673,12 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
 
-        {/* Action Button */}
+        {/* Logout Button */}
         <TouchableOpacity 
-          style={[styles.actionBtn, isEditing ? {backgroundColor: COLORS.primary} : {backgroundColor: '#333'}]}
-          onPress={isEditing ? handleSave : () => setIsEditing(true)}
-          disabled={saving}
+          style={styles.logoutBtn}
+          onPress={handleLogout}
         >
-          <Text style={[styles.btnText, !isEditing && {color: COLORS.primary}]}>
-            {saving ? "Saving..." : isEditing ? "Save Changes" : "Edit Profile"}
-          </Text>
+          <Text style={styles.logoutBtnText}>Log Out</Text>
         </TouchableOpacity>
 
         {/* Delete Account Button */}
@@ -762,6 +778,7 @@ const styles = StyleSheet.create({
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.surface, justifyContent: 'center', alignItems: 'center', marginBottom: SPACING.s, borderWidth: 1, borderColor: COLORS.primary },
   avatarText: { fontSize: 32, color: COLORS.primary, fontWeight: 'bold' },
   name: { fontSize: 20, color: COLORS.textPrimary, fontWeight: 'bold' },
+  nameInput: { fontSize: 20, color: COLORS.textPrimary, fontWeight: 'bold', textAlign: 'center', padding: SPACING.s, borderRadius: 12, backgroundColor: COLORS.surface },
   email: { color: COLORS.textSecondary },
 
   section: { marginBottom: SPACING.xl },
@@ -781,6 +798,22 @@ const styles = StyleSheet.create({
 
   actionBtn: { padding: SPACING.m, borderRadius: 12, alignItems: 'center', marginTop: SPACING.s },
   btnText: { color: '#000', fontWeight: 'bold', fontSize: 16 },
+
+  // Logout Button
+  logoutBtn: { 
+    padding: SPACING.m, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    marginTop: SPACING.l,
+    backgroundColor: 'rgba(255, 204, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: COLORS.primary
+  },
+  logoutBtnText: { 
+    color: COLORS.primary, 
+    fontWeight: 'bold', 
+    fontSize: 16 
+  },
 
   // Delete Account Button
   deleteBtn: { 
