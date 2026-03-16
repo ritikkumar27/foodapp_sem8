@@ -5,14 +5,99 @@ import {
   KeyboardAvoidingView, Platform, Alert 
 } from 'react-native';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
+<<<<<<< Updated upstream
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore'; // [NEW] Import Firestore
+=======
+import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore'; 
+>>>>>>> Stashed changes
 import { auth, db } from '../services/firebaseConfig';
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleDevBypass = async () => {
+    if (!__DEV__) return;
+
+    const devEmail = process.env.EXPO_PUBLIC_DEV_EMAIL || email;
+    const devPassword = process.env.EXPO_PUBLIC_DEV_PASSWORD || password;
+
+    setLoading(true);
+    try {
+      if (devEmail && devPassword) {
+        await signInWithEmailAndPassword(auth, devEmail, devPassword);
+      } else {
+        await signInAnonymously(auth);
+      }
+
+      const user = auth.currentUser;
+      if (user) {
+        // Ensure a profile exists so AppNavigator routes straight to MainTabs.
+        await setDoc(
+          doc(db, 'user_profiles', user.uid),
+          {
+            name: 'Dev User',
+            email: user.email || '',
+            profileVersion: 2,
+            age: 25,
+            dob: '',
+            gender: 'Prefer not to say',
+            height: 170,
+            weight: 70,
+            waist: null,
+            activityLevel: 'Moderately active',
+            diseases: ['None'],
+            medication: {
+              onMedication: 'No',
+              categories: [],
+              timingSensitivity: '',
+            },
+            diet: {
+              pattern: 'Non-vegetarian',
+              fastingHabits: 'No',
+              fastingType: '',
+            },
+            allergies: ['None'],
+            lifestyle: {
+              smoking: 'Never',
+              alcohol: 'Never',
+              sleepHours: 7,
+              stressLevel: 'Low',
+            },
+            dailyFoodBehavior: {
+              packagedFoodFrequency: 'Rare',
+            },
+            healthGoals: [],
+            bmi: 24.2,
+            dailyNutritionGoals: {
+              calories: 2200,
+              protein: 110,
+              carbs: 275,
+              fat: 70,
+              sugar: 25,
+              sodium: 2000,
+            },
+            customLimits: {
+              calories: 2200,
+              protein: 110,
+              carbs: 275,
+              fat: 70,
+              sugar: 25,
+              sodium: 2000,
+            },
+          },
+          { merge: true }
+        );
+      }
+    } catch (error: any) {
+      Alert.alert('Dev Bypass Failed', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -110,9 +195,21 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={styles.buttonText}>{loading ? "Checking..." : "Enter"}</Text>
           </TouchableOpacity>
 
+<<<<<<< Updated upstream
           <TouchableOpacity onPress={handleForgotPassword}>
             <Text style={styles.forgotText}>Forgot Password?</Text>
           </TouchableOpacity>
+=======
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.devButton}
+              onPress={handleDevBypass}
+              disabled={loading}
+            >
+              <Text style={styles.devButtonText}>{loading ? "Please wait..." : "Dev Mode Bypass"}</Text>
+            </TouchableOpacity>
+          )}
+>>>>>>> Stashed changes
 
           <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
             <Text style={styles.footerText}>
@@ -184,12 +281,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+<<<<<<< Updated upstream
   forgotText: {
     color: COLORS.primary,
     textAlign: 'center',
     marginTop: SPACING.s,
     fontSize: 14,
     fontWeight: '500',
+=======
+  devButton: {
+    borderWidth: 1,
+    borderColor: '#333',
+    backgroundColor: COLORS.surface,
+    padding: SPACING.m,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  devButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+>>>>>>> Stashed changes
   },
   footerText: {
     color: COLORS.textSecondary,
