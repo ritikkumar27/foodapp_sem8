@@ -62,13 +62,13 @@ export default function ScanResultScreen({ route, navigation }: any) {
       setEditedName(recipeFood.name);
       
       // Skip to result with default "SAFE" decision for recipes
-      setResult({
+      setResult(({
         decision: 'SAFE',
         reason: 'Custom recipe from your ingredients',
         sugarOK: true,
         sodiumOK: true,
         caloriesOK: true
-      });
+      } as any) as EvaluationResult);
     } else if (barcode) {
       // For barcode scans, fetch data
       fetchBaseData();
@@ -108,9 +108,10 @@ export default function ScanResultScreen({ route, navigation }: any) {
 
       // LAYER 2: Try OpenFoodFacts API
       try {
-        const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`, {
-          timeout: 10000
-        });
+        const response = await fetch(
+          `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`,
+          ({ timeout: 10000 } as any)
+        );
         
         if (!response.ok) {
           throw new Error(`API returned ${response.status}`);
@@ -304,6 +305,49 @@ export default function ScanResultScreen({ route, navigation }: any) {
       console.error(e);
       Alert.alert("Error", "Could not log food.");
     }
+  };
+
+  const renderSmartAnalysis = (text: string) => {
+    const lines = String(text || '')
+      .replace(/\r\n/g, '\n')
+      .split('\n');
+
+    return (
+      <View style={styles.aiFormatted}>
+        {lines.map((rawLine, idx) => {
+          const line = rawLine.trim();
+
+          if (!line) return <View key={`sp-${idx}`} style={styles.aiSpacer} />;
+
+          const isHeading = /^#{2,3}\s+/.test(line);
+          const headingText = isHeading ? line.replace(/^#{2,3}\s+/, '') : '';
+          if (isHeading) {
+            return (
+              <Text key={`h-${idx}`} style={styles.aiHeading}>
+                {headingText}
+              </Text>
+            );
+          }
+
+          const isBullet = /^[-*•]\s+/.test(line);
+          const bulletText = isBullet ? line.replace(/^[-*•]\s+/, '') : '';
+          if (isBullet) {
+            return (
+              <View key={`b-${idx}`} style={styles.aiBulletRow}>
+                <Text style={styles.aiBulletDot}>•</Text>
+                <Text style={styles.aiBulletText}>{bulletText}</Text>
+              </View>
+            );
+          }
+
+          return (
+            <Text key={`p-${idx}`} style={styles.aiParagraph}>
+              {line}
+            </Text>
+          );
+        })}
+      </View>
+    );
   };
 
   if (step === 'loading') {
@@ -512,17 +556,24 @@ export default function ScanResultScreen({ route, navigation }: any) {
           <Text style={styles.detailsSubtitle}>Tap to view ingredients, allergens, additives and nutrients per 100g</Text>
         </TouchableOpacity>
 
-        {/* DECISION BOX */}
-        <View style={[styles.resultBox, { borderColor: statusColor }]}>
-          <View style={styles.aiBox}>
-            <Text style={styles.aiLabel}>✨ Smart Analysis</Text>
-            <Text style={styles.aiText}>
-              {(aiExplanation && aiExplanation !== "Generating health insights..." 
-                ? aiExplanation 
-                : (result.reason || "Analyzing...") + "\n\n" + aiExplanation) || "Analysis not available"}
-            </Text>
+        {/* DECISION BOX & AI ANALYSIS */}
+        {aiExplanation === "Generating health insights..." ? (
+          <View style={styles.aiLoadingContainer}>
+            <ActivityIndicator color={COLORS.primary} size="large" />
+            <Text style={styles.aiLoadingText}>Generating Response</Text>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.resultBox, { borderColor: statusColor }]}>
+            <View style={styles.aiBox}>
+              <Text style={styles.aiLabel}>✨ Smart Analysis</Text>
+              {renderSmartAnalysis(
+                (aiExplanation && aiExplanation !== "Generating health insights..." 
+                  ? aiExplanation 
+                  : (result.reason || "Analyzing...") + "\n\n" + aiExplanation) || "Analysis not available"
+              )}
+            </View>
+          </View>
+        )}
       </ScrollView>
 
       <Modal visible={detailsVisible} transparent animationType="slide" onRequestClose={() => setDetailsVisible(false)}>
@@ -720,10 +771,27 @@ const styles = StyleSheet.create({
   macroLabel: { color: COLORS.textSecondary, fontSize: 12, marginTop: 2 },
 
   resultBox: { borderWidth: 2, borderRadius: 16, padding: SPACING.l, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)' },
-  aiBox: { marginTop: SPACING.s, backgroundColor: '#2A2A2A', padding: SPACING.m, borderRadius: 12, width: '100%' },
-  aiLabel: { color: COLORS.secondary, fontWeight: 'bold', marginBottom: SPACING.s, fontSize: 14 },
-  aiText: { color: '#E0E0E0', fontSize: 14, lineHeight: 22 },
-
+  aiBox: { marginTop: SPACING.s, backgroundColor: '#1F1F1F', padding: SPACING.l, borderRadius: 16, width: '100%', borderWidth: 1, borderColor: '#333' },
+  aiLabel: { color: COLORS.secondary, fontWeight: 'bold', marginBottom: SPACING.m, fontSize: 14, letterSpacing: 0.3 },
+  aiLoadingContainer: {
+    paddingVertical: SPACING.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.m,
+  },
+  aiLoadingText: {
+    color: COLORS.primary,
+    fontSize: 16,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  aiFormatted: { gap: 8 },
+  aiSpacer: { height: 8 },
+  aiHeading: { color: COLORS.textPrimary, fontSize: 14, fontWeight: 'bold', marginTop: 4 },
+  aiParagraph: { color: '#E8E8E8', fontSize: 13.5, lineHeight: 21 },
+  aiBulletRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  aiBulletDot: { color: COLORS.primary, width: 16, lineHeight: 21, fontSize: 14, marginTop: 0.5 },
+  aiBulletText: { color: '#E8E8E8', fontSize: 13.5, lineHeight: 21, flex: 1 },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheetOverlayTouchable: { flex: 1 },
   sheetContainer: { backgroundColor: COLORS.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: SPACING.l, paddingTop: 10, paddingBottom: SPACING.l, maxHeight: '80%' },
