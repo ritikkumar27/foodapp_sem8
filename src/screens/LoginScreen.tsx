@@ -5,13 +5,8 @@ import {
   KeyboardAvoidingView, Platform, Alert 
 } from 'react-native';
 import { COLORS, SPACING, FONTS } from '../constants/theme';
-<<<<<<< Updated upstream
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore'; // [NEW] Import Firestore
-=======
-import { signInAnonymously, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInAnonymously, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore'; 
->>>>>>> Stashed changes
 import { auth, db } from '../services/firebaseConfig';
 
 export default function LoginScreen({ navigation }: any) {
@@ -195,11 +190,9 @@ export default function LoginScreen({ navigation }: any) {
             <Text style={styles.buttonText}>{loading ? "Checking..." : "Enter"}</Text>
           </TouchableOpacity>
 
-<<<<<<< Updated upstream
           <TouchableOpacity onPress={handleForgotPassword}>
             <Text style={styles.forgotText}>Forgot Password?</Text>
           </TouchableOpacity>
-=======
           {__DEV__ && (
             <TouchableOpacity
               style={styles.devButton}
@@ -209,7 +202,6 @@ export default function LoginScreen({ navigation }: any) {
               <Text style={styles.devButtonText}>{loading ? "Please wait..." : "Dev Mode Bypass"}</Text>
             </TouchableOpacity>
           )}
->>>>>>> Stashed changes
 
           <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
             <Text style={styles.footerText}>
@@ -281,14 +273,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-<<<<<<< Updated upstream
   forgotText: {
     color: COLORS.primary,
     textAlign: 'center',
     marginTop: SPACING.s,
     fontSize: 14,
     fontWeight: '500',
-=======
+  },
   devButton: {
     borderWidth: 1,
     borderColor: '#333',
@@ -301,7 +292,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 14,
     fontWeight: '600',
->>>>>>> Stashed changes
   },
   footerText: {
     color: COLORS.textSecondary,
